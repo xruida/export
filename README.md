@@ -1,8 +1,4 @@
-服务端 [![pipeline status]
-(http://code.xruida.com/xruida/server/badges/master/pipeline.svg)]
-(http://code.xruida.com/xruida/server/commits/master) [![coverage report]
-(http://code.xruida.com/xruida/server/badges/master/coverage.svg)]
-(http://code.xruida.com/xruida/server/commits/master)
+导出数据格式
 ===========
 
 
