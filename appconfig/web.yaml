@@ -1,0 +1,15 @@
+debug: true
+https: false
+domain: localhost
+keyFile: keyFile
+certFile: certFile
+outputCharset: utf-8
+outputMimeType: application/json
+port: 8082
+headers:
+  Access-Control-Allow-Origin: "*"  
+  Access-Control-Allow-Methods: POST,GET,PUT,PATCH,OPTIONS,DELETE
+  Access-Control-Allow-Headers: Content-Type, Authorization, Accept,X-Requested-With
+  Server: Windows/IIS7
+readTimeout: 3s
+shutdownTimeout: 3s

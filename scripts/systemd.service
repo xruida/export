@@ -1,0 +1,22 @@
+# Copyright 2017 by caixw, All rights reserved.
+# Use of this source code is governed by a MIT
+# license that can be found in the LICENSE file.
+
+# Systemd 启动脚本
+# 放在 /etc/systemd/system 之下
+# 中提供了一些必要元素，具体内容可能要根据运行环境稍作修改。
+
+[Unit]
+Description=xruida export daemon
+After=network.target
+
+[Service]
+PIDFile=/tmp/export.air.pid-404
+User=www
+Group=www
+WorkingDirectory=/data/www/export
+ExecStart=/data/www/export/export
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
