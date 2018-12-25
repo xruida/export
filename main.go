@@ -65,6 +65,7 @@ func main() {
 	if err := web.Init(*c); err != nil {
 		panic(err)
 	}
+	// fmt.Println("开始")
 
 	initModules()
 

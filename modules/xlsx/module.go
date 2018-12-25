@@ -13,5 +13,5 @@ const ModuleName = "xlsx"
 func Init() {
 	m := web.NewModule(ModuleName, "导出 oxml 的 xlsx 服务")
 
-	m.GetFunc("/oxml/xlsx", exportXLSX)
+	m.PostFunc("/oxml/xlsx", exportXLSX)
 }

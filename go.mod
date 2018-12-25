@@ -1,6 +1,7 @@
 module code.xruida.com/xruida/server
 
 require (
+	baliance.com/gooxml v1.0.1
 	github.com/issue9/assert v1.0.0
 	github.com/issue9/is v1.1.1 // indirect
 	github.com/issue9/logs v1.0.0
@@ -10,7 +11,7 @@ require (
 )
 
 replace (
-	code.xruida.com/xruida/dak => /Users/caixw/dev.localized/xruida/xruida/dak
+	code.xruida.com/xruida/dak => C:/myGo/path/src/code.xruida.com/xruida/dak
 	golang.org/x/net => github.com/golang/net v0.0.0-20180826012351-8a410e7b638d
 	golang.org/x/text => github.com/golang/text v0.3.0
 )
