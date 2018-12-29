@@ -5,8 +5,12 @@
 package xlsx
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"baliance.com/gooxml/measurement"
 
@@ -33,8 +37,8 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 	type Wps struct {
 		Name       string  `orm:"name(name);len(50)" json:"name"`     //单元格内的数据
-		Column     string  `orm:"name(column)" json:"column"`         //所在单元格
-		Enjambment string  `orm:"name(enjambment)" json:"enjambment"` //合并单元格的右下坐标
+		Column     []int   `orm:"name(column)" json:"column"`         //所在单元格
+		Enjambment []int   `orm:"name(enjambment)" json:"enjambment"` //合并单元格的右下坐标
 		Ball       bool    `orm:"name(ball)" json:"ball"`             //单元格是否有边框
 		Italic     bool    `orm:"name(italic)" json:"italic"`         //斜体
 		Bold       bool    `orm:"name(bold)" json:"bold"`             //黑体
@@ -62,12 +66,16 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
-
+	ww := new(bytes.Buffer)
+	ss.Save(ww)
 	row := sheet.AddRow()
 	row.AddCell()
 
 	for _, v := range data.Format {
-		rt := sheet.Cell(v.Column).SetRichTextString()
+
+		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
+
+		rt := sheet.Cell(column).SetRichTextString()
 		run := rt.AddRun()
 		//设置单元格内的数据
 		run.SetText(v.Name)
@@ -82,16 +90,18 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		//合并单元格
 		if len(v.Enjambment) != 0 {
 
-			sheet.AddMergedCells(v.Column, v.Enjambment)
+			enjambment := numTostring(v.Enjambment[0]) + strconv.Itoa(v.Enjambment[1])
+
+			sheet.AddMergedCells(column, enjambment)
 
 			centered.SetHorizontalAlignment(sml.ST_HorizontalAlignmentCenter)
 			centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
-			sheet.Cell(v.Column).SetStyle(centered)
+			sheet.Cell(column).SetStyle(centered)
 
 		}
 		if v.Ball {
 			//单元格边框设置
-			sheet.Cell(v.Column).SetStyle(centered)
+			sheet.Cell(column).SetStyle(centered)
 
 			// add some borders to the style (ordering isn't important, we could just as
 			// easily construct the cell style and then apply it to the cell)
@@ -109,7 +119,30 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("error validating sheet: %s", err)
 	}
 
-	ss.SaveToFile("text.xlsx")
+	ss.SaveToFile("./upload/text.xlsx")
 
-	ctx.Render(http.StatusCreated, nil, nil)
+	fi, err := os.Open("./upload/text.xlsx")
+	defer fi.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// b, _ := ioutil.ReadAll(fi)
+	// // d, err := fi.Stat()
+
+	w.Header().Add("Content-Disposition", "attachment; filename=file.xlsx")
+	// w.Header().Add("Content-Type", "application/vnd.ms-excel")
+	w.Header().Add("Content-type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	// w.Write(b)
+	// w.Header().Add("Content-Disposition", "attachment; filename=file.xls")
+	// w.Header().Add("Content-Type", "application/vnd.ms-excel")
+	// // w.Header().Add("Content-type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	// w.Header().Add("Expires", "0")
+	// w.Header().Add("Cache-Control", "must-revalidate")
+	// w.Header().Add("Pragma", "public")
+
+	http.ServeFile(w, r, "./upload/text.xlsx")
+	// http.ServeContent(w, r, "name", time.Now(), bytes.NewReader(ww.Bytes()))
+	// http.ServeContent(w, r, d.Name(), d.ModTime(), fi)
+
 }
