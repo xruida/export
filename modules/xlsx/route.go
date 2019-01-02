@@ -6,10 +6,7 @@ package xlsx
 
 import (
 	"bytes"
-	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
 
 	"baliance.com/gooxml/color"
@@ -51,17 +48,6 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	if !ctx.Read(data) {
 		return
 	}
-
-	// rslt := web.NewResult(result.BadRequestInvalidBody)
-	// if is.Number(data.Name) {
-	// 	rslt.Add("name", "不能为全数字")
-	// }
-	// if data.Username == "" && !is.CNMobile(data.Username) {
-	// 	rslt.Add("username", "无效的格式")
-	// }
-	// if data.Password == "{" {
-	// 	rslt.Add("password", "不能为空")
-	// }
 
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
@@ -115,33 +101,22 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := ss.Validate(); err != nil {
-		log.Fatalf("error validating sheet: %s", err)
+		ctx.Error(http.StatusInternalServerError, err)
+		return
 	}
 
-	ss.SaveToFile("./upload/text.xlsx")
-
-	fi, err := os.Open("./upload/text.xlsx")
-	defer fi.Close()
-	if err != nil {
-		fmt.Println(err)
+	buf := new(bytes.Buffer)
+	if err := ss.Save(buf); err != nil {
+		ctx.Error(http.StatusInternalServerError, err)
+		return
 	}
 
-	// b, _ := ioutil.ReadAll(fi)
-	// // d, err := fi.Stat()
+	reader := bytes.NewReader(buf.Bytes())
 
-	w.Header().Add("Content-Disposition", "attachment; filename=file.xlsx")
-	// w.Header().Add("Content-Type", "application/vnd.ms-excel")
-	w.Header().Add("Content-type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	// w.Write(b)
-	// w.Header().Add("Content-Disposition", "attachment; filename=file.xls")
-	// w.Header().Add("Content-Type", "application/vnd.ms-excel")
-	// // w.Header().Add("Content-type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	// w.Header().Add("Expires", "0")
-	// w.Header().Add("Cache-Control", "must-revalidate")
-	// w.Header().Add("Pragma", "public")
-
-	http.ServeFile(w, r, "./upload/text.xlsx")
-	// http.ServeContent(w, r, "name", time.Now(), bytes.NewReader(ww.Bytes()))
-	// http.ServeContent(w, r, d.Name(), d.ModTime(), fi)
-
+	ctx.ServeContent(reader, "text.xlsx", map[string]string{
+		"Pragma":              "public",
+		"Cache-Control":       "must-revalidate",
+		"Content-Disposition": "attachment; filename=file1.xlsx",
+		"Content-type":        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	})
 }

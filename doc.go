@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-package main
+package export
 
 // @apidoc xruida.com 文档
 // @apiVersion 0.1.0
