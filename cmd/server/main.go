@@ -66,8 +66,8 @@ func main() {
 
 	initModules()
 
-	logs.Critical(web.Serve())
-	logs.Flush()
+	web.InitModules("")
+	web.Fatal(2, web.Serve())
 }
 
 func initModules() {

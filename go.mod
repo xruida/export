@@ -6,7 +6,7 @@ require (
 	github.com/issue9/is v1.1.1 // indirect
 	github.com/issue9/logs v1.0.0
 	github.com/issue9/version v1.0.0
-	github.com/issue9/web v0.21.1
+	github.com/issue9/web v0.23.0
 	gopkg.in/yaml.v2 v2.2.1
 )
 
