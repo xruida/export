@@ -38,6 +38,10 @@ func main() {
 		return
 	}
 
+	if err := web.Init(*c); err != nil {
+		panic(err)
+	}
+
 	err := web.Mimetypes().AddUnmarshals(map[string]mimetype.UnmarshalFunc{
 		gob.MimeType:       gob.Unmarshal,
 		"application/json": json.Unmarshal,
@@ -59,10 +63,6 @@ func main() {
 	}
 
 	result.Init()
-
-	if err := web.Init(*c); err != nil {
-		panic(err)
-	}
 
 	initModules()
 
