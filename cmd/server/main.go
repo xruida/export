@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-package main // import "github.com/xruida/export"
+package main
 
 import (
 	"encoding/json"
@@ -13,13 +13,13 @@ import (
 
 	"github.com/issue9/logs"
 	"github.com/issue9/web"
-	"github.com/issue9/web/encoding"
-	"github.com/issue9/web/encoding/gob"
+	"github.com/issue9/web/mimetype"
+	"github.com/issue9/web/mimetype/gob"
 	yaml "gopkg.in/yaml.v2"
 
-	"code.xruida.com/xruida/server/common/result"
-	"code.xruida.com/xruida/server/common/vars"
-	"code.xruida.com/xruida/server/modules/xlsx"
+	"github.com/xruida/export/common/result"
+	"github.com/xruida/export/common/vars"
+	"github.com/xruida/export/modules/xlsx"
 )
 
 func main() {
@@ -38,34 +38,31 @@ func main() {
 		return
 	}
 
-	err := encoding.AddUnmarshals(map[string]encoding.UnmarshalFunc{
-		encoding.DefaultMimeType: gob.Unmarshal,
-		"application/json":       json.Unmarshal,
-		"application/xml":        xml.Unmarshal,
-		"text/vnd.yaml":          yaml.Unmarshal,
+	err := web.Mimetypes().AddUnmarshals(map[string]mimetype.UnmarshalFunc{
+		gob.MimeType:       gob.Unmarshal,
+		"application/json": json.Unmarshal,
+		"application/xml":  xml.Unmarshal,
+		"text/vnd.yaml":    yaml.Unmarshal,
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	err = encoding.AddMarshals(map[string]encoding.MarshalFunc{
-		encoding.DefaultMimeType: gob.Marshal,
-		"application/json":       json.Marshal,
-		"application/xml":        xml.Marshal,
-		"text/vnd.yaml":          yaml.Marshal,
+	err = web.Mimetypes().AddMarshals(map[string]mimetype.MarshalFunc{
+		gob.MimeType:       gob.Marshal,
+		"application/json": json.Marshal,
+		"application/xml":  xml.Marshal,
+		"text/vnd.yaml":    yaml.Marshal,
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	if err := result.Init(); err != nil {
-		panic(err)
-	}
+	result.Init()
 
 	if err := web.Init(*c); err != nil {
 		panic(err)
 	}
-	// fmt.Println("开始")
 
 	initModules()
 

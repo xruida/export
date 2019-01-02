@@ -12,9 +12,8 @@ import (
 	"os"
 	"strconv"
 
-	"baliance.com/gooxml/measurement"
-
 	"baliance.com/gooxml/color"
+	"baliance.com/gooxml/measurement"
 	"baliance.com/gooxml/schema/soo/sml"
 	"baliance.com/gooxml/spreadsheet"
 	"github.com/issue9/web"

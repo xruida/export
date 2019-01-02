@@ -1,6 +1,7 @@
 // Copyright 2018 by xruida.com, All rights reserved.
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
+
 package xlsx
 
 func numTostring(t int) string {

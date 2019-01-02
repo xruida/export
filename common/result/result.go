@@ -8,13 +8,8 @@ package result
 import (
 	"net/http"
 
-	"github.com/issue9/web/result"
+	"github.com/issue9/web"
 )
-
-// Init 初始化消息内容
-func Init() error {
-	return result.NewMessages(messages)
-}
 
 // 400
 const (
@@ -55,31 +50,40 @@ const (
 	NotFoundStaff
 )
 
-var messages = map[int]string{
-	BadRequest:              "错误的消息",
-	BadRequestInvalidParam:  "地址参数错误",
-	BadRequestInvalidQuery:  "查询参数错误",
-	BadRequestInvalidBody:   "请求内容错误",
-	BadRequestInvalidHeader: "请求报头错误",
+// Init 初始化消息内容
+func Init() {
+	web.NewMessages(http.StatusBadRequest, map[int]string{
+		BadRequest:              "错误的消息",
+		BadRequestInvalidParam:  "地址参数错误",
+		BadRequestInvalidQuery:  "查询参数错误",
+		BadRequestInvalidBody:   "请求内容错误",
+		BadRequestInvalidHeader: "请求报头错误",
+	})
 
-	Unauthorized:                   "账号或是密码错误",
-	UnauthorizedInvalidState:       "当前状态无法登录",
-	UnauthorizedInvalidToken:       "token 无效",
-	UnauthorizedInvalidPassword:    "密码无效",
-	UnauthorizedInvalidUsername:    "无效的账号",
-	UnauthorizedNeedChangePassword: "只有修改才能进行其它操作",
-	UnauthorizedAuthTokenExpired:   "验证码已经过期", // 第三方的 access token 过期
+	web.NewMessages(http.StatusUnauthorized, map[int]string{
+		Unauthorized:                   "账号或是密码错误",
+		UnauthorizedInvalidState:       "当前状态无法登录",
+		UnauthorizedInvalidToken:       "token 无效",
+		UnauthorizedInvalidPassword:    "密码无效",
+		UnauthorizedInvalidUsername:    "无效的账号",
+		UnauthorizedNeedChangePassword: "只有修改才能进行其它操作",
+		UnauthorizedAuthTokenExpired:   "验证码已经过期", // 第三方的 access token 过期
+	})
 
-	Forbidden:                      "权限错误",
-	ForbiddenNewOldPasswordIsEqual: "新旧密码不能相同",
-	ForbiddenExistSubItem:          "存在子项目",
-	ForbiddenStateNotAllow:         "当前状态不允许该操作",
-	ForbiddenIsFull:                "子项目已满，不允许再添加",
-	ForbiddenNotDeleteOwn:          "不能删除自己",
-	ForbiddenOnlyCompanyOwner:      "该操作只能是企业的所有者才能执行",
-	ForbiddenExists:                "已经存在",
+	web.NewMessages(http.StatusForbidden, map[int]string{
+		Forbidden:                      "权限错误",
+		ForbiddenNewOldPasswordIsEqual: "新旧密码不能相同",
+		ForbiddenExistSubItem:          "存在子项目",
+		ForbiddenStateNotAllow:         "当前状态不允许该操作",
+		ForbiddenIsFull:                "子项目已满，不允许再添加",
+		ForbiddenNotDeleteOwn:          "不能删除自己",
+		ForbiddenOnlyCompanyOwner:      "该操作只能是企业的所有者才能执行",
+		ForbiddenExists:                "已经存在",
+	})
 
-	NotFoundCompany:    "公司不存在",
-	NotFoundDepartment: "部门不存在",
-	NotFoundStaff:      "用户不存在",
+	web.NewMessages(http.StatusForbidden, map[int]string{
+		NotFoundCompany:    "公司不存在",
+		NotFoundDepartment: "部门不存在",
+		NotFoundStaff:      "用户不存在",
+	})
 }
