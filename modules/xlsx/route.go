@@ -39,6 +39,9 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		Italic     bool    `orm:"name(italic)" json:"italic"`         //斜体
 		Bold       bool    `orm:"name(bold)" json:"bold"`             //黑体
 		Size       float64 `orm:"name(size)" json:"size"`             //字体大小
+		Width      float64 `orm:"name(width)" json:"width"`           //宽度
+		Height     float64 `orm:"name(height)" json:"height"`         //高度
+		Horizontal int     `orm:"name(horizontal)" json:"horizontal"` //水平对齐 2左 3中 4右
 	}
 
 	data := &struct {
@@ -57,8 +60,10 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	row.AddCell()
 
 	for _, v := range data.Format {
-
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
+		if v.Width != 1 && v.Width != 0 {
+			sheet.Column(uint32(v.Column[0])).SetWidth(measurement.Distance(v.Width * measurement.Inch))
+		}
 
 		rt := sheet.Cell(column).SetRichTextString()
 		run := rt.AddRun()
@@ -72,15 +77,16 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		run.SetItalic(v.Italic)
 		run.SetColor(color.Black)
 		centered := ss.StyleSheet.AddCellStyle()
+		centered.SetWrapped(true)
 		//合并单元格
+		centered.SetHorizontalAlignment(sml.ST_HorizontalAlignment(v.Horizontal))
+		centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
 		if len(v.Enjambment) != 0 {
 
-			enjambment := numTostring(v.Enjambment[0]) + strconv.Itoa(v.Enjambment[1])
+			enjambment := transformation(v.Enjambment[0]) + strconv.Itoa(v.Enjambment[1])
 
 			sheet.AddMergedCells(column, enjambment)
 
-			centered.SetHorizontalAlignment(sml.ST_HorizontalAlignmentCenter)
-			centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
 			sheet.Cell(column).SetStyle(centered)
 
 		}
