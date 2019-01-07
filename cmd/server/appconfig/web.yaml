@@ -3,8 +3,6 @@ https: false
 domain: localhost
 keyFile: keyFile
 certFile: certFile
-outputCharset: utf-8
-outputMimeType: application/json
 port: 8082
 headers:
   Access-Control-Allow-Origin: "*"  

@@ -15,7 +15,7 @@ PIDFile=/tmp/export.air.pid-404
 User=www
 Group=www
 WorkingDirectory=/data/www/export
-ExecStart=/data/www/export/export
+ExecStart=/data/www/export/server
 Restart=always
 
 [Install]
