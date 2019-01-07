@@ -4,7 +4,7 @@
 
 
 :: 代码的主目录，变量赋值时，等号两边不能有空格。
-set wd=%~dp0\..
+set wd=%~dp0\..\cmd\server
 
 :: 程序所在的目录
 set mainPath=github.com/xruida/export
@@ -19,4 +19,4 @@ set builddate=%date:~0,4%%date:~5,2%%date:~8,2%
 for /f "delims=" %%t in ('git rev-parse HEAD') do set hash=%%t
 
 echo 开始编译
-%GOROOT%\bin\go build -o %wd%\export.exe -ldflags "-X %varsPath%.buildDate=%builddate% -X %varsPath%.commitHash=%hash%" -v %mainPath%
+%GOROOT%\bin\go build -o %wd%\export.exe -ldflags "-X %varsPath%.buildDate=%builddate% -X %varsPath%.commitHash=%hash%" -v %wd%

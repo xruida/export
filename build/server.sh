@@ -4,7 +4,7 @@
 # license that can be found in the LICENSE file.
 
 # 指定工作目录
-wd=$(dirname $0)/..
+wd=$(dirname $0)/../cmd/server
 
 # 指定编译日期
 date=`date -u '+%Y%m%d'`
