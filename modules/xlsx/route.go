@@ -42,15 +42,44 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		Width      float64 `orm:"name(width)" json:"width"`           //宽度
 		Height     float64 `orm:"name(height)" json:"height"`         //高度
 		Horizontal int     `orm:"name(horizontal)" json:"horizontal"` //水平对齐 2左 3中 4右
+		Color      []uint8 `orm:"name(color)" json:"color"`
+	}
+
+	type Line struct {
+		Cell int `orm:"name(cell)" json:"cell"` //第几行
+		Row  int `orm:"name(row)" json:"row"`   //第几列止
 	}
 
 	data := &struct {
-		Format []*Wps `orm:"name(format)" json:"format"`
+		// URL    string  `orm:"name(url);len(50)" json:"url"` //单元格内的数据
+		Line   []*Line `orm:"name(line)" json:"line"`
+		Format []*Wps  `orm:"name(format)" json:"format"`
 	}{}
 
 	if !ctx.Read(data) {
 		return
 	}
+
+	// if len(data.URL) != 0 {
+	// 	image, err := http.Get(data.URL)
+	// 	r := Image{}
+
+	// 	imgDec, ifmt, err := image.Decode(image)
+	// 	if err != nil {
+	// 		return r, fmt.Errorf("unable to parse image: %s", err)
+	// 	}
+
+	// 	r.Format = ifmt
+	// 	r.Size = imgDec.Bounds().Size()
+
+	// 	iref, err := ss.AddImage(r)
+	// 	if err != nil {
+	// 		log.Fatalf("unable to add image to workbook: %s", err)
+	// 	}
+
+	// 	dwng := ss.AddDrawing()
+	// 	sheet.SetDrawing(dwng)
+	// }
 
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
@@ -58,6 +87,17 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	ss.Save(ww)
 	row := sheet.AddRow()
 	row.AddCell()
+	centered := ss.StyleSheet.AddCellStyle()
+
+	for _, k := range data.Line {
+		for i := 1; i <= k.Row; i++ {
+			cel := transformation(i) + strconv.Itoa(k.Cell)
+			sheet.Cell(cel).SetStyle(centered)
+			bAll := ss.StyleSheet.AddBorder()
+			centered.SetBorder(bAll)
+			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+		}
+	}
 
 	for _, v := range data.Format {
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
@@ -75,8 +115,9 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		run.SetBold(v.Bold)
 		//设置斜体
 		run.SetItalic(v.Italic)
-		run.SetColor(color.Black)
-		centered := ss.StyleSheet.AddCellStyle()
+		run.SetColor(color.RGB(v.Color[0], v.Color[1], v.Color[2]))
+
+		sheet.Cell(column).SetStyle(centered)
 		centered.SetWrapped(true)
 		//合并单元格
 		centered.SetHorizontalAlignment(sml.ST_HorizontalAlignment(v.Horizontal))
@@ -87,23 +128,27 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 			sheet.AddMergedCells(column, enjambment)
 
-			sheet.Cell(column).SetStyle(centered)
+			// sheet.Cell(column).SetStyle(centered)
 
+			if v.Ball {
+				//单元格边框设置
+
+				// add some borders to the style (ordering isn't important, we could just as
+				// easily construct the cell style and then apply it to the cell)
+				for i := v.Column[1]; i <= v.Enjambment[1]; i++ {
+					for j := v.Column[0]; j <= v.Enjambment[0]; j++ {
+						cel := transformation(j) + strconv.Itoa(i)
+						sheet.Cell(cel).SetStyle(centered)
+						bAll := ss.StyleSheet.AddBorder()
+						centered.SetBorder(bAll)
+						bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
+						bAll.SetRight(sml.ST_BorderStyleThin, color.Black)
+						bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+						bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+					}
+				}
+			}
 		}
-		if v.Ball {
-			//单元格边框设置
-			sheet.Cell(column).SetStyle(centered)
-
-			// add some borders to the style (ordering isn't important, we could just as
-			// easily construct the cell style and then apply it to the cell)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetRight(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
-		}
-
 	}
 
 	if err := ss.Validate(); err != nil {

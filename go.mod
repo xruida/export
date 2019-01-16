@@ -2,11 +2,11 @@ module github.com/xruida/export
 
 require (
 	baliance.com/gooxml v1.0.1
-	github.com/issue9/assert v1.0.0
-	github.com/issue9/is v1.1.1 // indirect
+	github.com/issue9/assert v1.1.0
 	github.com/issue9/logs v1.0.0
-	github.com/issue9/version v1.0.0
-	github.com/issue9/web v0.23.0
+	github.com/issue9/mux v1.2.0 // indirect
+	github.com/issue9/version v1.0.1
+	github.com/issue9/web v0.24.1
 	gopkg.in/yaml.v2 v2.2.1
 )
 
