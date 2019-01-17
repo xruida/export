@@ -6,7 +6,6 @@ package xlsx
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -118,7 +117,7 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
 
 		if v.Ball && len(v.Enjambment) == 0 {
-			fmt.Println(v.Name)
+
 			// sheet.Cell(column).SetStyle(centered)
 			bAll := ss.StyleSheet.AddBorder()
 			centered.SetBorder(bAll)
