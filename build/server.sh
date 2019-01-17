@@ -18,4 +18,4 @@ path=github.com/xruida/export/common/vars
 cd ${wd}
 
 echo '开始编译'
-GOPROXY=off go build -ldflags "-X ${path}.buildDate=${date} -X ${path}.commitHash=${hash}" -v
+go build -ldflags "-X ${path}.buildDate=${date} -X ${path}.commitHash=${hash}" -v
