@@ -87,17 +87,6 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	ss.Save(ww)
 	row := sheet.AddRow()
 	row.AddCell()
-	centered := ss.StyleSheet.AddCellStyle()
-
-	for _, k := range data.Line {
-		for i := 1; i <= k.Row; i++ {
-			cel := transformation(i) + strconv.Itoa(k.Cell)
-			sheet.Cell(cel).SetStyle(centered)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-		}
-	}
 
 	for _, v := range data.Format {
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
@@ -115,13 +104,19 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		run.SetBold(v.Bold)
 		//设置斜体
 		run.SetItalic(v.Italic)
-		run.SetColor(color.RGB(v.Color[0], v.Color[1], v.Color[2]))
-
-		sheet.Cell(column).SetStyle(centered)
+		if len(v.Color) == 0 {
+			run.SetColor(color.Black)
+		} else {
+			run.SetColor(color.RGB(v.Color[0], v.Color[1], v.Color[2]))
+		}
+		centered := ss.StyleSheet.AddCellStyle()
 		centered.SetWrapped(true)
 		//合并单元格
+
+		sheet.Cell(column).SetStyle(centered)
 		centered.SetHorizontalAlignment(sml.ST_HorizontalAlignment(v.Horizontal))
 		centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
+
 		if len(v.Enjambment) != 0 {
 
 			enjambment := transformation(v.Enjambment[0]) + strconv.Itoa(v.Enjambment[1])
@@ -129,7 +124,6 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 			sheet.AddMergedCells(column, enjambment)
 
 			// sheet.Cell(column).SetStyle(centered)
-
 			if v.Ball {
 				//单元格边框设置
 
@@ -148,6 +142,18 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+		}
+
+	}
+
+	for _, k := range data.Line {
+		centered := ss.StyleSheet.AddCellStyle()
+		for i := 1; i <= k.Row; i++ {
+			cel := transformation(i) + strconv.Itoa(k.Cell)
+			sheet.Cell(cel).SetStyle(centered)
+			bAll := ss.StyleSheet.AddBorder()
+			centered.SetBorder(bAll)
+			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
 		}
 	}
 
