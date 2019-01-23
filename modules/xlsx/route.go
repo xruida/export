@@ -88,6 +88,17 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	row := sheet.AddRow()
 	row.AddCell()
 
+	for _, k := range data.Line {
+		centered := ss.StyleSheet.AddCellStyle()
+		for i := 1; i <= k.Row; i++ {
+			cel := transformation(i) + strconv.Itoa(k.Cell)
+			sheet.Cell(cel).SetStyle(centered)
+			bAll := ss.StyleSheet.AddBorder()
+			centered.SetBorder(bAll)
+			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+		}
+	}
+
 	for _, v := range data.Format {
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
 		if v.Width != 1 && v.Width != 0 {
@@ -154,17 +165,6 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-	}
-
-	for _, k := range data.Line {
-		centered := ss.StyleSheet.AddCellStyle()
-		for i := 1; i <= k.Row; i++ {
-			cel := transformation(i) + strconv.Itoa(k.Cell)
-			sheet.Cell(cel).SetStyle(centered)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-		}
 	}
 
 	if err := ss.Validate(); err != nil {
