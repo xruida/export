@@ -42,18 +42,15 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		Width      float64 `orm:"name(width)" json:"width"`           //宽度
 		Height     float64 `orm:"name(height)" json:"height"`         //高度
 		Horizontal int     `orm:"name(horizontal)" json:"horizontal"` //水平对齐 2左 3中 4右
-		Color      []uint8 `orm:"name(color)" json:"color"`
-	}
-
-	type Line struct {
-		Cell int `orm:"name(cell)" json:"cell"` //第几行
-		Row  int `orm:"name(row)" json:"row"`   //第几列止
+		Color      []uint8 `orm:"name(color)" json:"color"`           //字体颜色
+		Top        bool    `orm:"name(top)" json:"top"`               //顶部描边
+		Bottom     bool    `orm:"name(bottom)" json:"bottom"`         //底部描边
 	}
 
 	data := &struct {
 		// URL    string  `orm:"name(url);len(50)" json:"url"` //单元格内的数据
-		Line   []*Line `orm:"name(line)" json:"line"`
-		Format []*Wps  `orm:"name(format)" json:"format"`
+		Row    []float64 `orm:"name(row)" json:"row"`
+		Format []*Wps    `orm:"name(format)" json:"format"`
 	}{}
 
 	if !ctx.Read(data) {
@@ -83,21 +80,25 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
-	ww := new(bytes.Buffer)
-	ss.Save(ww)
-	row := sheet.AddRow()
-	row.AddCell()
 
-	for _, k := range data.Line {
-		centered := ss.StyleSheet.AddCellStyle()
-		for i := 1; i <= k.Row; i++ {
-			cel := transformation(i) + strconv.Itoa(k.Cell)
-			sheet.Cell(cel).SetStyle(centered)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-		}
+	// row := sheet.AddRow()
+	// row.AddCell()
+
+	for i := 0; i < len(data.Row); i++ {
+		row := sheet.AddRow()
+		row.SetHeight(measurement.Distance(0.05 * measurement.Inch))
 	}
+
+	// for _, k := range data.Line {
+	// 	centered := ss.StyleSheet.AddCellStyle()
+	// 	for i := 1; i <= k.Row; i++ {
+	// 		cel := transformation(i) + strconv.Itoa(k.Cell)
+	// 		sheet.Cell(cel).SetStyle(centered)
+	// 		bAll := ss.StyleSheet.AddBorder()
+	// 		centered.SetBorder(bAll)
+	// 		bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+	// 	}
+	// }
 
 	for _, v := range data.Format {
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
@@ -115,6 +116,8 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		run.SetBold(v.Bold)
 		//设置斜体
 		run.SetItalic(v.Italic)
+		//设置字体
+		run.SetFont("宋体")
 		if len(v.Color) == 0 {
 			run.SetColor(color.Black)
 		} else {
@@ -127,16 +130,11 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		centered.SetHorizontalAlignment(sml.ST_HorizontalAlignment(v.Horizontal))
 		centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
 
-		if v.Ball && len(v.Enjambment) == 0 {
-
-			// sheet.Cell(column).SetStyle(centered)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetRight(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
-		}
+		// if v.Top {
+		// 	bAll := ss.StyleSheet.AddBorder()
+		// 	centered.SetBorder(bAll)
+		// 	bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+		// }
 
 		if len(v.Enjambment) != 0 {
 
@@ -145,6 +143,26 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 			sheet.AddMergedCells(column, enjambment)
 
 			// sheet.Cell(column).SetStyle(centered)
+
+			if v.Top {
+				for i := v.Column[0]; i <= v.Enjambment[0]; i++ {
+					cel := transformation(i) + strconv.Itoa(v.Column[1])
+					sheet.Cell(cel).SetStyle(centered)
+					bAll := ss.StyleSheet.AddBorder()
+					centered.SetBorder(bAll)
+					bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+				}
+			}
+
+			if v.Bottom {
+				for i := v.Column[0]; i <= v.Enjambment[0]; i++ {
+					cel := transformation(i) + strconv.Itoa(v.Enjambment[1])
+					sheet.Cell(cel).SetStyle(centered)
+					bAll := ss.StyleSheet.AddBorder()
+					centered.SetBorder(bAll)
+					bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+				}
+			}
 			if v.Ball {
 				//单元格边框设置
 
@@ -163,14 +181,42 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-		}
 
+		} else if len(v.Enjambment) == 0 {
+
+			if v.Top {
+				bAll := ss.StyleSheet.AddBorder()
+				centered.SetBorder(bAll)
+				bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+			}
+
+			if v.Bottom {
+				bAll := ss.StyleSheet.AddBorder()
+				centered.SetBorder(bAll)
+				bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+			}
+
+			if v.Ball {
+
+				// sheet.Cell(column).SetStyle(centered)
+				bAll := ss.StyleSheet.AddBorder()
+				centered.SetBorder(bAll)
+				bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
+				bAll.SetRight(sml.ST_BorderStyleThin, color.Black)
+				bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+				bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+			}
+
+		}
 	}
 
 	if err := ss.Validate(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
 	}
+
+	ww := new(bytes.Buffer)
+	ss.Save(ww)
 
 	buf := new(bytes.Buffer)
 	if err := ss.Save(buf); err != nil {
