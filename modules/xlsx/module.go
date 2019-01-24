@@ -14,4 +14,5 @@ func Init() {
 	m := web.NewModule(ModuleName, "导出 oxml 的 xlsx 服务")
 
 	m.PostFunc("/oxml/xlsx", exportXLSX)
+	m.GetFunc("/oxml/doc", exportDOC)
 }

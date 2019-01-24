@@ -6,14 +6,18 @@ package xlsx
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"baliance.com/gooxml/color"
+	"baliance.com/gooxml/document"
 	"baliance.com/gooxml/measurement"
 	"baliance.com/gooxml/schema/soo/sml"
+	"baliance.com/gooxml/schema/soo/wml"
 	"baliance.com/gooxml/spreadsheet"
 	"github.com/issue9/web"
+	// "github.com/jung-kurt/gofpdf/internal/example"
 )
 
 // @api GET /oxml/xlsx 导出 xlsx 内容
@@ -42,18 +46,15 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		Width      float64 `orm:"name(width)" json:"width"`           //宽度
 		Height     float64 `orm:"name(height)" json:"height"`         //高度
 		Horizontal int     `orm:"name(horizontal)" json:"horizontal"` //水平对齐 2左 3中 4右
-		Color      []uint8 `orm:"name(color)" json:"color"`
-	}
-
-	type Line struct {
-		Cell int `orm:"name(cell)" json:"cell"` //第几行
-		Row  int `orm:"name(row)" json:"row"`   //第几列止
+		Color      []uint8 `orm:"name(color)" json:"color"`           //字体颜色
+		Top        bool    `orm:"name(top)" json:"top"`               //顶部描边
+		Bottom     bool    `orm:"name(bottom)" json:"bottom"`         //底部描边
 	}
 
 	data := &struct {
 		// URL    string  `orm:"name(url);len(50)" json:"url"` //单元格内的数据
-		Line   []*Line `orm:"name(line)" json:"line"`
-		Format []*Wps  `orm:"name(format)" json:"format"`
+		Row    []float64 `orm:"name(row)" json:"row"`
+		Format []*Wps    `orm:"name(format)" json:"format"`
 	}{}
 
 	if !ctx.Read(data) {
@@ -85,8 +86,25 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	sheet := ss.AddSheet()
 	ww := new(bytes.Buffer)
 	ss.Save(ww)
+	// row := sheet.AddRow()
+	// row.AddCell()
 	row := sheet.AddRow()
-	row.AddCell()
+	for r := 0; r < 5; r++ {
+		row = sheet.AddRow()
+		fmt.Println(int(row.RowNumber()))
+		row.SetHeight(measurement.Distance(r * measurement.Inch))
+	}
+
+	// for _, k := range data.Line {
+	// 	centered := ss.StyleSheet.AddCellStyle()
+	// 	for i := 1; i <= k.Row; i++ {
+	// 		cel := transformation(i) + strconv.Itoa(k.Cell)
+	// 		sheet.Cell(cel).SetStyle(centered)
+	// 		bAll := ss.StyleSheet.AddBorder()
+	// 		centered.SetBorder(bAll)
+	// 		bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+	// 	}
+	// }
 
 	for _, v := range data.Format {
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
@@ -104,6 +122,8 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		run.SetBold(v.Bold)
 		//设置斜体
 		run.SetItalic(v.Italic)
+		//设置字体
+		run.SetFont("宋体")
 		if len(v.Color) == 0 {
 			run.SetColor(color.Black)
 		} else {
@@ -116,16 +136,11 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		centered.SetHorizontalAlignment(sml.ST_HorizontalAlignment(v.Horizontal))
 		centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
 
-		if v.Ball && len(v.Enjambment) == 0 {
-
-			// sheet.Cell(column).SetStyle(centered)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetRight(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-			bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
-		}
+		// if v.Top {
+		// 	bAll := ss.StyleSheet.AddBorder()
+		// 	centered.SetBorder(bAll)
+		// 	bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+		// }
 
 		if len(v.Enjambment) != 0 {
 
@@ -134,6 +149,26 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 			sheet.AddMergedCells(column, enjambment)
 
 			// sheet.Cell(column).SetStyle(centered)
+
+			if v.Top {
+				for i := v.Column[0]; i <= v.Enjambment[0]; i++ {
+					cel := transformation(i) + strconv.Itoa(v.Column[1])
+					sheet.Cell(cel).SetStyle(centered)
+					bAll := ss.StyleSheet.AddBorder()
+					centered.SetBorder(bAll)
+					bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+				}
+			}
+
+			if v.Bottom {
+				for i := v.Column[0]; i <= v.Enjambment[0]; i++ {
+					cel := transformation(i) + strconv.Itoa(v.Enjambment[1])
+					sheet.Cell(cel).SetStyle(centered)
+					bAll := ss.StyleSheet.AddBorder()
+					centered.SetBorder(bAll)
+					bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+				}
+			}
 			if v.Ball {
 				//单元格边框设置
 
@@ -152,18 +187,32 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
-		}
 
-	}
+		} else if len(v.Enjambment) == 0 {
 
-	for _, k := range data.Line {
-		centered := ss.StyleSheet.AddCellStyle()
-		for i := 1; i <= k.Row; i++ {
-			cel := transformation(i) + strconv.Itoa(k.Cell)
-			sheet.Cell(cel).SetStyle(centered)
-			bAll := ss.StyleSheet.AddBorder()
-			centered.SetBorder(bAll)
-			bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+			if v.Top {
+				bAll := ss.StyleSheet.AddBorder()
+				centered.SetBorder(bAll)
+				bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+			}
+
+			if v.Bottom {
+				bAll := ss.StyleSheet.AddBorder()
+				centered.SetBorder(bAll)
+				bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+			}
+
+			if v.Ball {
+
+				// sheet.Cell(column).SetStyle(centered)
+				bAll := ss.StyleSheet.AddBorder()
+				centered.SetBorder(bAll)
+				bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
+				bAll.SetRight(sml.ST_BorderStyleThin, color.Black)
+				bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
+				bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
+			}
+
 		}
 	}
 
@@ -186,4 +235,37 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		"Content-Disposition": "attachment; filename=file1.xlsx",
 		"Content-type":        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 	})
+}
+
+func exportDOC(w http.ResponseWriter, r *http.Request) {
+	ctx := web.NewContext(w, r)
+
+	doc := document.New()
+
+	// First Table
+	{
+		table := doc.AddTable()
+		// width of the page
+		table.Properties().SetWidthPercent(100)
+		// with thick borers
+		borders := table.Properties().Borders()
+		borders.SetAll(wml.ST_BorderSingle, color.Auto, 2*measurement.Point)
+
+		row := table.AddRow()
+		run := row.AddCell().AddParagraph().AddRun()
+		run.AddText("Name")
+		run.Properties().SetHighlight(wml.ST_HighlightColorYellow)
+		row.AddCell().AddParagraph().AddRun().AddText("John Smith")
+		row = table.AddRow()
+		row.AddCell().AddParagraph().AddRun().AddText("Street Address")
+		row.AddCell().AddParagraph().AddRun().AddText("111 Country Road")
+	}
+
+	if err := doc.Validate(); err != nil {
+		ctx.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	doc.SaveToFile("tables.docx")
+
 }
