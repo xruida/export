@@ -6,7 +6,6 @@ package xlsx
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -211,15 +210,9 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 				bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
 			}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 917fb3a8ae8f0cd59c7f08f6552a696dd4017f93
 		}
 	}
 
-=======
->>>>>>> 04194d1d564973dda4ecf7aab19594e65a929128
 	if err := ss.Validate(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
