@@ -213,9 +213,12 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 				bAll.SetBottom(sml.ST_BorderStyleThin, color.Black)
 			}
 
+<<<<<<< HEAD
 		}
 	}
 
+=======
+>>>>>>> 04194d1d564973dda4ecf7aab19594e65a929128
 	if err := ss.Validate(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
