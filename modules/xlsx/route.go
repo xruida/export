@@ -84,15 +84,13 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
-	ww := new(bytes.Buffer)
-	ss.Save(ww)
+
 	// row := sheet.AddRow()
 	// row.AddCell()
-	row := sheet.AddRow()
-	for r := 0; r < 5; r++ {
-		row = sheet.AddRow()
-		fmt.Println(int(row.RowNumber()))
-		row.SetHeight(measurement.Distance(r * measurement.Inch))
+
+	for i := 0; i < len(data.Row); i++ {
+		row := sheet.AddRow()
+		row.SetHeight(measurement.Distance(0.05 * measurement.Inch))
 	}
 
 	// for _, k := range data.Line {
@@ -214,6 +212,9 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 			}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 917fb3a8ae8f0cd59c7f08f6552a696dd4017f93
 		}
 	}
 
@@ -223,6 +224,9 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
 	}
+
+	ww := new(bytes.Buffer)
+	ss.Save(ww)
 
 	buf := new(bytes.Buffer)
 	if err := ss.Save(buf); err != nil {
