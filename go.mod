@@ -10,6 +10,7 @@ require (
 )
 
 replace (
+	baliance.com/gooxml => C:/myGo/path/src/baliance.com/gooxml
 	golang.org/x/net => github.com/golang/net v0.0.0-20180826012351-8a410e7b638d
 	golang.org/x/sys => github.com/golang/sys v0.0.0-20180905080454-ebe1bf3edb33
 	golang.org/x/text => github.com/golang/text v0.3.0
