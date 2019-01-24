@@ -89,7 +89,7 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	// row := sheet.AddRow()
 	// row.AddCell()
 
-	for i := 0; i < len(data.Row); i++ {
+	for r := 0; r < 5; i++ {
 		row := sheet.AddRow()
 		row.SetHeight(measurement.Distance(data.Row[i] * measurement.Inch))
 	}
