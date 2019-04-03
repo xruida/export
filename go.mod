@@ -4,6 +4,7 @@ require (
 	baliance.com/gooxml v1.0.1
 	github.com/issue9/assert v1.1.0
 	github.com/issue9/logs v1.0.0
+	github.com/issue9/unique v1.1.2
 	github.com/issue9/version v1.0.1
 	github.com/issue9/web v0.24.1
 	gopkg.in/yaml.v2 v2.2.1

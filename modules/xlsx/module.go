@@ -4,7 +4,9 @@
 
 package xlsx
 
-import "github.com/issue9/web"
+import (
+	"github.com/issue9/web"
+)
 
 // ModuleName 模块名称
 const ModuleName = "xlsx"
@@ -14,5 +16,6 @@ func Init() {
 	m := web.NewModule(ModuleName, "导出 oxml 的 xlsx 服务")
 
 	m.PostFunc("/oxml/xlsx", exportXLSX)
-	m.GetFunc("/oxml/doc", exportDOC)
+	m.PostFunc("/oxml/doc", exportDOC)
+	m.PostFunc("/oxml/upload", uploadDOC)
 }
