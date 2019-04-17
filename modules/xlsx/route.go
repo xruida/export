@@ -272,6 +272,7 @@ func exportDOC(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := &struct {
+		URL      string `orm:"name(url)" json:"url"`
 		FileName string `orm:"name(filename)" json:"filename"`
 		Format   []word `orm:"name(format)" json:"format"`
 	}{}
@@ -280,9 +281,44 @@ func exportDOC(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	res, err := http.Get(data.URL)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	err = os.MkdirAll("./upload", os.ModePerm)
+	if os.IsNotExist(err) {
+		ctx.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	dir := "./upload/" + data.FileName + ".doc"
+
+	t, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	defer t.Close()
+
+	io.Copy(t, res.Body)
+	go func() {
+		select {
+		case <-time.After(5 * time.Minute):
+			err := os.Remove(dir)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err)
+				return
+			}
+		}
+
+	}()
+
 	doc := document.New()
 
-	doc, err := document.Open(data.FileName)
+	doc, err = document.Open(dir)
 	if err != nil {
 		ctx.Error(http.StatusNotFound, err)
 		return
@@ -380,18 +416,6 @@ func exportDOC(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	doc.SaveToFile(data.FileName)
-	go func() {
-		select {
-		case <-time.After(5 * time.Minute):
-			err := os.Remove(data.FileName)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err)
-				return
-			}
-		}
-
-	}()
 	ww := new(bytes.Buffer)
 	doc.Save(ww)
 
@@ -410,53 +434,4 @@ func exportDOC(w http.ResponseWriter, r *http.Request) {
 		"Content-type":        "application/msword",
 	})
 
-}
-
-func uploadDOC(w http.ResponseWriter, r *http.Request) {
-	ctx := web.NewContext(w, r)
-
-	data := &struct {
-		URL      string `orm:"name(url)" json:"url"`
-		FileName string `orm:"name(filename)" json:"filename"`
-	}{}
-
-	if !ctx.Read(data) {
-		return
-	}
-
-	res, err := http.Get(data.URL)
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, err)
-		return
-	}
-
-	err = os.MkdirAll("./upload", os.ModePerm)
-	if os.IsNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, err)
-		return
-	}
-
-	dir := "./upload/" + data.FileName + ".docx"
-
-	t, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err)
-		return
-	}
-
-	defer t.Close()
-
-	io.Copy(t, res.Body)
-	go func() {
-		select {
-		case <-time.After(5 * time.Minute):
-			err := os.Remove(dir)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err)
-				return
-			}
-		}
-
-	}()
-	ctx.Render(http.StatusOK, map[string]interface{}{"filename": dir}, nil)
 }

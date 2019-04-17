@@ -17,5 +17,4 @@ func Init() {
 
 	m.PostFunc("/oxml/xlsx", exportXLSX)
 	m.PostFunc("/oxml/doc", exportDOC)
-	m.PostFunc("/oxml/upload", uploadDOC)
 }
