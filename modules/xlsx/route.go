@@ -14,11 +14,13 @@ import (
 	"time"
 
 	"baliance.com/gooxml/color"
+	"baliance.com/gooxml/common"
 	"baliance.com/gooxml/document"
 	"baliance.com/gooxml/measurement"
 	"baliance.com/gooxml/schema/soo/sml"
 	"baliance.com/gooxml/schema/soo/wml"
 	"baliance.com/gooxml/spreadsheet"
+	"github.com/issue9/unique"
 	"github.com/issue9/web"
 	// "github.com/jung-kurt/gofpdf/internal/example"
 )
@@ -54,8 +56,13 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		Bottom     bool    `orm:"name(bottom)" json:"bottom"`         //底部描边
 	}
 
+	type image struct {
+		URL      string    `orm:"name(url)" json:"url"`
+		Position []float64 `orm:"name(position)" json:"position"`
+	}
+
 	data := &struct {
-		// URL    string  `orm:"name(url);len(50)" json:"url"` //单元格内的数据
+		Image  []*image  `orm:"name(image)" json:"image"`
 		Row    []float64 `orm:"name(row)" json:"row"`
 		Format []*Wps    `orm:"name(format)" json:"format"`
 	}{}
@@ -64,50 +71,76 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if len(data.URL) != 0 {
-	// 	image, err := http.Get(data.URL)
-	// 	r := Image{}
-
-	// 	imgDec, ifmt, err := image.Decode(image)
-	// 	if err != nil {
-	// 		return r, fmt.Errorf("unable to parse image: %s", err)
-	// 	}
-
-	// 	r.Format = ifmt
-	// 	r.Size = imgDec.Bounds().Size()
-
-	// 	iref, err := ss.AddImage(r)
-	// 	if err != nil {
-	// 		log.Fatalf("unable to add image to workbook: %s", err)
-	// 	}
-
-	// 	dwng := ss.AddDrawing()
-	// 	sheet.SetDrawing(dwng)
-	// }
-
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
 	ww := new(bytes.Buffer)
 	ss.Save(ww)
 
-	// row := sheet.AddRow()
-	// row.AddCell()
+	dwng := ss.AddDrawing()
+	sheet.SetDrawing(dwng)
+
+	for _, v := range data.Image {
+		res, err := http.Get(v.URL)
+		if err != nil {
+			ctx.Error(http.StatusBadRequest, err)
+			return
+		}
+
+		err = os.MkdirAll("./upload", os.ModePerm)
+		if os.IsNotExist(err) {
+			ctx.Error(http.StatusInternalServerError, err)
+			return
+		}
+
+		dir := "./upload/" + unique.Number().String() + ".jpg"
+
+		t, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err)
+			return
+		}
+
+		defer t.Close()
+
+		io.Copy(t, res.Body)
+		go func() {
+			select {
+			case <-time.After(5 * time.Minute):
+				err := os.Remove(dir)
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, err)
+					return
+				}
+			}
+
+			return
+		}()
+
+		img, err := common.ImageFromFile(dir)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err)
+			return
+		}
+
+		iref, err := ss.AddImage(img)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err)
+			return
+		}
+
+		anc := dwng.AddImage(iref, spreadsheet.AnchorTypeAbsolute)
+
+		anc.SetColOffset(measurement.Distance(v.Position[0]) * measurement.Point)
+		anc.SetRowOffset(measurement.Distance(v.Position[1]) * measurement.Point)
+
+		anc.SetWidth(measurement.Distance(v.Position[2]) * measurement.Point)
+		anc.SetHeight(iref.RelativeHeight(measurement.Distance(v.Position[3]) * measurement.Point))
+	}
 
 	for i := 0; i < len(data.Row); i++ {
 		row := sheet.AddRow()
 		row.SetHeight(measurement.Distance(data.Row[i] * measurement.Inch))
 	}
-
-	// for _, k := range data.Line {
-	// 	centered := ss.StyleSheet.AddCellStyle()
-	// 	for i := 1; i <= k.Row; i++ {
-	// 		cel := transformation(i) + strconv.Itoa(k.Cell)
-	// 		sheet.Cell(cel).SetStyle(centered)
-	// 		bAll := ss.StyleSheet.AddBorder()
-	// 		centered.SetBorder(bAll)
-	// 		bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-	// 	}
-	// }
 
 	for _, v := range data.Format {
 		column := transformation(v.Column[0]) + strconv.Itoa(v.Column[1])
@@ -139,19 +172,11 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		centered.SetHorizontalAlignment(sml.ST_HorizontalAlignment(v.Horizontal))
 		centered.SetVerticalAlignment(sml.ST_VerticalAlignmentCenter)
 
-		// if v.Top {
-		// 	bAll := ss.StyleSheet.AddBorder()
-		// 	centered.SetBorder(bAll)
-		// 	bAll.SetTop(sml.ST_BorderStyleThin, color.Black)
-		// }
-
 		if len(v.Enjambment) != 0 {
 
 			enjambment := transformation(v.Enjambment[0]) + strconv.Itoa(v.Enjambment[1])
 
 			sheet.AddMergedCells(column, enjambment)
-
-			// sheet.Cell(column).SetStyle(centered)
 
 			if v.Top {
 				for i := v.Column[0]; i <= v.Enjambment[0]; i++ {
@@ -206,8 +231,6 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if v.Ball {
-
-				// sheet.Cell(column).SetStyle(centered)
 				bAll := ss.StyleSheet.AddBorder()
 				centered.SetBorder(bAll)
 				bAll.SetLeft(sml.ST_BorderStyleThin, color.Black)
