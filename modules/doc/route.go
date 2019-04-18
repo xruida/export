@@ -16,7 +16,11 @@ import (
 	"github.com/issue9/web"
 )
 
-func exportDOC(w http.ResponseWriter, r *http.Request) {
+func previewDoc(w http.ResponseWriter, r *http.Request) {
+	//ctx := web.NewContext(w, r)
+}
+
+func exportDoc(w http.ResponseWriter, r *http.Request) {
 	ctx := web.NewContext(w, r)
 	type word struct {
 		Key  string `orm:"name(key)" json:"key"`

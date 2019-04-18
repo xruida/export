@@ -5,17 +5,12 @@
 package main
 
 import (
-	"encoding/json"
-	"encoding/xml"
 	"flag"
 	"fmt"
 	"runtime"
 
 	"github.com/issue9/logs"
 	"github.com/issue9/web"
-	"github.com/issue9/web/mimetype"
-	"github.com/issue9/web/mimetype/gob"
-	yaml "gopkg.in/yaml.v2"
 
 	"github.com/xruida/export/common/result"
 	"github.com/xruida/export/common/vars"
@@ -39,34 +34,13 @@ func main() {
 		return
 	}
 
-	if err := web.Init(*c); err != nil {
-		panic(err)
-	}
-
-	err := web.Mimetypes().AddUnmarshals(map[string]mimetype.UnmarshalFunc{
-		gob.MimeType:       gob.Unmarshal,
-		"application/json": json.Unmarshal,
-		"application/xml":  xml.Unmarshal,
-		"text/vnd.yaml":    yaml.Unmarshal,
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = web.Mimetypes().AddMarshals(map[string]mimetype.MarshalFunc{
-		gob.MimeType:       gob.Marshal,
-		"application/json": json.Marshal,
-		"application/xml":  xml.Marshal,
-		"text/vnd.yaml":    yaml.Marshal,
-	})
-	if err != nil {
+	if err := web.Classic(*c); err != nil {
 		panic(err)
 	}
 
 	result.Init()
 
 	initModules()
-
 	web.InitModules("")
 	web.Fatal(2, web.Serve())
 }
