@@ -19,6 +19,7 @@ import (
 
 	"github.com/xruida/export/common/result"
 	"github.com/xruida/export/common/vars"
+	"github.com/xruida/export/modules/doc"
 	"github.com/xruida/export/modules/xlsx"
 )
 
@@ -73,5 +74,6 @@ func main() {
 func initModules() {
 	logs.Trace("开始初始化模块")
 	xlsx.Init()
+	doc.Init()
 	logs.Trace("初始化模块完成")
 }

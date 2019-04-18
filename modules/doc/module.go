@@ -2,17 +2,17 @@
 // Use of this source code is governed by a MIT
 // license that can be found in the LICENSE file.
 
-package xlsx
+package doc
 
 import (
 	"github.com/issue9/web"
 )
 
 // ModuleName 模块名称
-const ModuleName = "xlsx"
+const ModuleName = "doc"
 
 // Init 初始化信息
 func Init() {
-	m := web.NewModule(ModuleName, "导出 oxml 的 xlsx 服务")
-	m.PostFunc("/oxml/xlsx", exportXLSX)
+	m := web.NewModule(ModuleName, "导出 oxml 的 doc 服务")
+	m.PostFunc("/oxml/doc", exportDOC)
 }
