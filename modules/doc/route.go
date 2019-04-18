@@ -6,17 +6,14 @@ package doc
 
 import (
 	"bytes"
-	"io"
+	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
-	"time"
 
 	"baliance.com/gooxml/color"
 	"baliance.com/gooxml/document"
 	"baliance.com/gooxml/schema/soo/wml"
 	"github.com/issue9/web"
-	// "github.com/jung-kurt/gofpdf/internal/example"
 )
 
 func exportDOC(w http.ResponseWriter, r *http.Request) {
@@ -41,39 +38,14 @@ func exportDOC(w http.ResponseWriter, r *http.Request) {
 		ctx.Error(http.StatusBadRequest, err)
 		return
 	}
-
-	err = os.MkdirAll("./upload", os.ModePerm)
-	if os.IsNotExist(err) {
-		ctx.Error(http.StatusInternalServerError, err)
-		return
-	}
-
-	dir := "./upload/" + data.FileName + ".doc"
-
-	t, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE, 0666)
+	bs, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err)
+		ctx.Error(http.StatusBadRequest, err)
 		return
 	}
+	defer res.Body.Close()
 
-	defer t.Close()
-
-	io.Copy(t, res.Body)
-	go func() {
-		select {
-		case <-time.After(5 * time.Minute):
-			err := os.Remove(dir)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, err)
-				return
-			}
-		}
-
-	}()
-
-	doc := document.New()
-
-	doc, err = document.Open(dir)
+	doc, err := document.Read(bytes.NewReader(bs), int64(len(bs)))
 	if err != nil {
 		ctx.Error(http.StatusNotFound, err)
 		return
@@ -188,5 +160,4 @@ func exportDOC(w http.ResponseWriter, r *http.Request) {
 		"Content-Disposition": "attachment; filename=file1.doc",
 		"Content-type":        "application/msword",
 	})
-
 }
