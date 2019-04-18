@@ -196,7 +196,7 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 		created: time.Now(),
 	})
 
-	url, err := web.Mux().URL("/oxml/docx/preview/{no}", map[string]string{"no": no})
+	url, err := web.Mux().URL("/oxml/docx/{no}", map[string]string{"no": no})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err)
 		return

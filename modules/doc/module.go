@@ -21,7 +21,7 @@ func Init() {
 	m.AddService(clearBuf, "清除缓存的内容")
 
 	m.PostFunc("/oxml/docx", exportDoc).
-		GetFunc("/oxml/docx/preview/{no}", previewDoc)
+		GetFunc("/oxml/docx/{no}", previewDoc)
 }
 
 func clearBuf(ctx context.Context) error {
