@@ -6,18 +6,55 @@ package doc
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"baliance.com/gooxml/color"
 	"baliance.com/gooxml/document"
 	"baliance.com/gooxml/schema/soo/wml"
+	"github.com/issue9/unique"
 	"github.com/issue9/web"
+
+	"github.com/xruida/export/common/result"
 )
 
+const dur = 5 * time.Minute
+
+var readers = &sync.Map{}
+
+type reader struct {
+	*bytes.Reader
+	created time.Time
+}
+
+var cacheControl = fmt.Sprintf("max-age=%d, must-revalidate", int(dur.Seconds()))
+
 func previewDoc(w http.ResponseWriter, r *http.Request) {
-	//ctx := web.NewContext(w, r)
+	ctx := web.NewContext(w, r)
+
+	no, err := ctx.ParamString("no")
+	if err != nil {
+		ctx.NewResult(result.BadRequestInvalidParam).Add("no", err.Error()).Render()
+		return
+	}
+
+	rr, found := readers.Load(no)
+	if !found {
+		ctx.Exit(http.StatusGone)
+		return
+	}
+	buf := rr.(*reader)
+
+	ctx.ServeContent(buf.Reader, "text.doc", map[string]string{
+		"Pragma":              "public",
+		"Cache-Control":       cacheControl,
+		"Content-Disposition": "attachment; filename=file1.doc",
+		"Content-type":        "application/msword",
+	})
 }
 
 func exportDoc(w http.ResponseWriter, r *http.Request) {
@@ -147,21 +184,25 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	ww := new(bytes.Buffer)
-	doc.Save(ww)
-
 	buf := new(bytes.Buffer)
 	if err := doc.Save(buf); err != nil {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
 	}
 
-	reader := bytes.NewReader(buf.Bytes())
+	no := unique.Date().String()
+	readers.Store(no, &reader{
+		Reader:  bytes.NewReader(buf.Bytes()),
+		created: time.Now(),
+	})
 
-	ctx.ServeContent(reader, "text.doc", map[string]string{
-		"Pragma":              "public",
-		"Cache-Control":       "must-revalidate",
-		"Content-Disposition": "attachment; filename=file1.doc",
-		"Content-type":        "application/msword",
+	url, err := web.Mux().URL("/oxml/docx/preview/{no}", map[string]string{"no": no})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Render(http.StatusCreated, nil, map[string]string{
+		"Location": url,
 	})
 }
