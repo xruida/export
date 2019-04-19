@@ -201,8 +201,7 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
 	}
-
-	ctx.Render(http.StatusCreated, nil, map[string]string{
+	ctx.Render(http.StatusCreated, map[string]interface{}{
 		"Location": url,
-	})
+	}, nil)
 }
