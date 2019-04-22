@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ const dur = 5 * time.Minute
 var readers = &sync.Map{}
 
 type reader struct {
+	filename string
 	*bytes.Reader
 	created time.Time
 }
@@ -47,12 +49,17 @@ func previewDoc(w http.ResponseWriter, r *http.Request) {
 		ctx.Exit(http.StatusGone)
 		return
 	}
+
 	buf := rr.(*reader)
+
+	name := url.QueryEscape(buf.filename)
+
+	ff := "attachment; filename=" + name
 
 	ctx.ServeContent(buf.Reader, "text.doc", map[string]string{
 		"Pragma":              "public",
 		"Cache-Control":       cacheControl,
-		"Content-Disposition": "attachment; filename=file1.doc",
+		"Content-Disposition": ff,
 		"Content-type":        "application/msword",
 	})
 }
@@ -192,8 +199,9 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 
 	no := unique.Date().String()
 	readers.Store(no, &reader{
-		Reader:  bytes.NewReader(buf.Bytes()),
-		created: time.Now(),
+		filename: data.FileName,
+		Reader:   bytes.NewReader(buf.Bytes()),
+		created:  time.Now(),
 	})
 
 	url, err := web.Mux().URL("/oxml/docx/{no}", map[string]string{"no": no})
