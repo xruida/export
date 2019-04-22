@@ -54,7 +54,7 @@ func previewDoc(w http.ResponseWriter, r *http.Request) {
 
 	name := url.QueryEscape(buf.filename)
 
-	dis := "attachment; filename=" + name
+	dis := "attachment; filename=\"" + name + "\""
 
 	ctx.ServeContent(buf.Reader, "text.doc", map[string]string{
 		"Pragma":              "public",
