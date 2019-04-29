@@ -6,10 +6,13 @@ package xlsx
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"baliance.com/gooxml/color"
@@ -19,21 +22,51 @@ import (
 	"baliance.com/gooxml/spreadsheet"
 	"github.com/issue9/unique"
 	"github.com/issue9/web"
+	"github.com/xruida/export/common/result"
 	// "github.com/jung-kurt/gofpdf/internal/example"
 )
 
-// @api GET /oxml/xlsx 导出 xlsx 内容
-// @apiGroup admin
-//
-// @apiRequest json
-// @apiHeader Authorization 提交登录凭证 accessToken
-//
-// @apiSuccess 200 OK
-// @apiExample json
-//  {
-//      "admin:resources-list":"查看资源列表",
-//      "admin:resources-list":"查看资源列表"
-//  }
+const dur = 5 * time.Minute
+
+var readers = &sync.Map{}
+
+type reader struct {
+	filename string
+	*bytes.Reader
+	created time.Time
+}
+
+var cacheControl = fmt.Sprintf("max-age=%d, must-revalidate", int(dur.Seconds()))
+
+func previewXlsx(w http.ResponseWriter, r *http.Request) {
+	ctx := web.NewContext(w, r)
+
+	no, err := ctx.ParamString("no")
+	if err != nil {
+		ctx.NewResult(result.BadRequestInvalidParam).Add("no", err.Error()).Render()
+		return
+	}
+
+	rr, found := readers.Load(no)
+	if !found {
+		ctx.Exit(http.StatusGone)
+		return
+	}
+
+	buf := rr.(*reader)
+
+	name := url.QueryEscape(buf.filename)
+
+	dis := "attachment; filename=\"" + name + "\""
+
+	ctx.ServeContent(buf.Reader, "text.xlsx", map[string]string{
+		"Pragma":              "public",
+		"Cache-Control":       cacheControl,
+		"Content-Disposition": dis,
+		"Content-type":        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	})
+}
+
 func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	ctx := web.NewContext(w, r)
 
@@ -59,9 +92,10 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := &struct {
-		Image  []*image  `orm:"name(image)" json:"image"`
-		Row    []float64 `orm:"name(row)" json:"row"`
-		Format []*Wps    `orm:"name(format)" json:"format"`
+		FileName string    `orm:"name(filename)" json:"filename"`
+		Image    []*image  `orm:"name(image)" json:"image"`
+		Row      []float64 `orm:"name(row)" json:"row"`
+		Format   []*Wps    `orm:"name(format)" json:"format"`
 	}{}
 
 	if !ctx.Read(data) {
@@ -70,8 +104,6 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 
 	ss := spreadsheet.New()
 	sheet := ss.AddSheet()
-	ww := new(bytes.Buffer)
-	ss.Save(ww)
 
 	dwng := ss.AddDrawing()
 	sheet.SetDrawing(dwng)
@@ -239,6 +271,9 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ww := new(bytes.Buffer)
+	ss.Save(ww)
+
 	if err := ss.Validate(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err)
 		return
@@ -250,12 +285,20 @@ func exportXLSX(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader := bytes.NewReader(buf.Bytes())
-
-	ctx.ServeContent(reader, "text.xlsx", map[string]string{
-		"Pragma":              "public",
-		"Cache-Control":       "must-revalidate",
-		"Content-Disposition": "attachment; filename=file1.xlsx",
-		"Content-type":        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	no := unique.Date().String()
+	readers.Store(no, &reader{
+		filename: data.FileName,
+		Reader:   bytes.NewReader(buf.Bytes()),
+		created:  time.Now(),
 	})
+
+	url, err := web.Mux().URL("/oxml/xlsx/{no}", map[string]string{"no": no})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Render(http.StatusCreated, map[string]interface{}{
+		"Location": url,
+	}, nil)
 }
