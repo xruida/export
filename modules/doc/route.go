@@ -156,11 +156,11 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 						r.ClearContent()
 						r.AddText(strings.Split(r.Text(), "{{"+v.Key+"}}")[0])
 
-						r.AddText("__" + v.Name + "__")
+						r.AddText("" + v.Name + "")
 						r.Properties().SetUnderline(wml.ST_UnderlineWords, color.Black)
 					} else {
 						r.ClearContent()
-						r.AddText("__" + v.Name + "__")
+						r.AddText("" + v.Name + "")
 						r.Properties().SetUnderline(wml.ST_UnderlineWords, color.Black)
 					}
 					if len(st) > 1 {
