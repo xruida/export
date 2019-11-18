@@ -13,10 +13,14 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
+	"io"
 
 	"baliance.com/gooxml/color"
-	"baliance.com/gooxml/document"
+	"baliance.com/gooxml/common"
 	"baliance.com/gooxml/schema/soo/wml"
+	"baliance.com/gooxml/measurement"
+	"baliance.com/gooxml/document"
 	"github.com/issue9/unique"
 	"github.com/issue9/web"
 
@@ -71,10 +75,18 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 		Name string `orm:"name(name)" json:"name"`
 	}
 
+	type image struct {
+		URL      string    `orm:"name(url)" json:"url"`
+		Position []float64 `orm:"name(position)" json:"position"`
+		Size     []float64 `orm:"name(size)" json:"size"`
+		Page     int       `orm:"page" json:"page"`
+	}
+
 	data := &struct {
 		URL      string `orm:"name(url)" json:"url"`
 		FileName string `orm:"name(filename)" json:"filename"`
 		Format   []word `orm:"name(format)" json:"format"`
+		Image    []*image  `orm:"name(image)" json:"image"`
 	}{}
 
 	if !ctx.Read(data) {
@@ -110,6 +122,70 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 	for _, sdt := range doc.StructuredDocumentTags() {
 		for _, p := range sdt.Paragraphs() {
 			paragraphs = append(paragraphs, p)
+		}
+	}
+
+	for _, p := range paragraphs {
+		for _,v := range data.Image {
+			if p == paragraphs[v.Page] {
+
+				res, err := http.Get(v.URL)
+				if err != nil {
+					ctx.Error(http.StatusBadRequest, err)
+					return
+				}
+
+				err = os.MkdirAll("./upload", os.ModePerm)
+				if os.IsNotExist(err) {
+				ctx.Error(http.StatusInternalServerError, err)
+				return
+				}
+
+				dir := "./upload/" + unique.Number().String() + ".jpg"
+
+				t, err := os.OpenFile(dir, os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+				ctx.Error(http.StatusInternalServerError, err)
+				return
+				}
+
+				defer t.Close()
+
+				io.Copy(t, res.Body)
+				go func() {
+					select {
+					case <-time.After(5 * time.Minute):
+						err := os.Remove(dir)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, err)
+						return
+					}
+				}
+
+				return
+			}()
+
+				img, err := common.ImageFromFile(dir)
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, err)
+					return
+				}
+
+				iref, err := doc.AddImage(img)
+				if err != nil {
+					ctx.Error(http.StatusInternalServerError, err)
+					return
+				}
+
+				anchored, err := p.AddRun().AddDrawingAnchored(iref)
+	    		if err != nil {
+		            ctx.Error(http.StatusInternalServerError, err)
+	                return
+	            }
+
+	            anchored.SetSize(measurement.Distance(v.Size[0])*measurement.Point,measurement.Distance(v.Size[1])*measurement.Point)
+	            anchored.SetOffset(measurement.Distance(v.Position[0])* measurement.Point,measurement.Distance(v.Position[1])* measurement.Point)
+			}
 		}
 	}
 
@@ -150,7 +226,7 @@ func exportDoc(w http.ResponseWriter, r *http.Request) {
 	for _, p := range paragraphs {
 		for _, r := range p.Runs() {
 			for _, v := range data.Format {
-				if strings.Replace(r.Text(), " ", "", -1) == "{{"+v.Key+"}}" {
+			if strings.Replace(r.Text(), " ", "", -1) == "{{"+v.Key+"}}" {
 					st := strings.SplitAfter(r.Text(), "{{"+v.Key+"}}")
 					if st[0] != "{{"+v.Key+"}}" {
 						r.ClearContent()
